@@ -24,7 +24,7 @@ def obter_produtos():
 
 # === GERADOR DE ÁUDIO COM ELEVENLABS ===
 def gerar_audio_elevenlabs(texto):
-    api_key = os.getenv("ELEVEN_API_KEY)"
+    api_key = os.getenv("ELEVEN_API_KEY")
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 
     headers = {
