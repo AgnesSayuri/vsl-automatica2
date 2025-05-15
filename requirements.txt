@@ -1,5 +1,8 @@
 flask
 openai
 moviepy
-requests
 pillow
+requests
+imageio
+imageio-ffmpeg
+
