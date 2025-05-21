@@ -62,7 +62,6 @@ def gerar_video():
 
     # Gerar roteiro
     prompt = f"Write a 30-second persuasive script to sell the product '{produto}', focusing on pain, desire, and urgency. End with: 'Link in description.'"
-   try:
     resposta = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
