@@ -51,31 +51,44 @@ def buscar_imagem(produto):
 
 @app.route("/gerar", methods=["POST"])
 def gerar_video():
-    data = request.json
-    produto = data.get("produto")
-    link = data.get("link")
-
-    if not produto or not link:
-        return jsonify({"erro": "Produto e link são obrigatórios"}), 400
-
-    # Gerar roteiro com OpenAI
-    prompt = f"Write a 30-second persuasive script to sell the product '{produto}', focusing on pain, desire, and urgency. End with: 'Link in description: {link}'"
-
     try:
+        data = request.json
+        produto = data.get("produto")
+        link = data.get("link")
+        print("Produto recebido:", produto)
+        print("Link recebido:", link)
+
+        if not produto or not link:
+            return jsonify({"erro": "Produto e link são obrigatórios"}), 400
+
+        prompt = f"Write a 30-second persuasive script to sell the product '{produto}', focusing on pain, desire, and urgency. End with: 'Link in description: {link}'"
+        print("Prompt criado:", prompt)
+
         resposta = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=1.1
         )
         texto = resposta.choices[0].message.content
-        print("Roteiro gerado:", texto)
-    except Exception as e:
-        print("Erro ao chamar OpenAI:", e)
-        return jsonify({"erro": f"Erro OpenAI: {str(e)}"}), 500
+        print("Texto gerado:", texto)
 
-    # Gerar áudio
-    if not gerar_audio_elevenlabs(texto):
-        return jsonify({"erro": "Erro ao gerar áudio"}), 500
+        if not gerar_audio_elevenlabs(texto):
+            return jsonify({"erro": "Erro ao gerar áudio"}), 500
+
+        fundo = buscar_imagem(produto)
+        if not fundo:
+            return jsonify({"erro": "Imagem não encontrada"}), 500
+
+        imagem = ImageClip(fundo).set_duration(30)
+        audio = AudioFileClip("audio.mp3")
+        video = imagem.set_audio(audio)
+        video.write_videofile("vsl_final.mp4", fps=24)
+
+        return jsonify({"mensagem": "VSL criada com sucesso!"})
+    
+    except Exception as e:
+        print("Erro final:", str(e))
+        return jsonify({"erro": f"Erro inesperado: {str(e)}"}), 500
 
     # Imagem
     fundo = buscar_imagem(produto)
