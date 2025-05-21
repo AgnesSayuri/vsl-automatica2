@@ -1,32 +1,21 @@
 from flask import Flask, request, jsonify
+from moviepy.editor import *
 import openai
-from moviepy.editor import ImageClip, AudioFileClip
-from PIL import Image
-import requests
-from io import BytesIO
 import os
+import requests
+from PIL import Image
+from io import BytesIO
 
 app = Flask(__name__)
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# === FUNÇÃO MODULAR: pode ser trocada pela API da Shopee futuramente ===
-def obter_produtos():
-    return [
-        {
-            "nome": "Relógio Smart Fitness Pro",
-            "link": "https://shope.ee/abc123"
-        },
-        {
-            "nome": "Fone Bluetooth X7",
-            "link": "https://shope.ee/xyz456"
-        }
-    ]
 
-# === GERADOR DE ÁUDIO COM ELEVENLABS ===
 def gerar_audio_elevenlabs(texto):
     api_key = os.getenv("ELEVEN_API_KEY")
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+    voice_id = "EXAVITQu4vr4xnSDxMaL"  # voz padrão americana
 
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
     headers = {
         "xi-api-key": api_key,
         "Content-Type": "application/json"
@@ -35,12 +24,12 @@ def gerar_audio_elevenlabs(texto):
         "text": texto,
         "model_id": "eleven_monolingual_v1",
         "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.75
+            "stability": 0.4,
+            "similarity_boost": 0.8
         }
     }
-    response = requests.post(url, headers=headers, json=data)
 
+    response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
         with open("audio.mp3", "wb") as f:
             f.write(response.content)
@@ -49,58 +38,55 @@ def gerar_audio_elevenlabs(texto):
         print("Erro ao gerar áudio:", response.text)
         return False
 
-# === GERADOR DE IMAGEM COM TEXTO DO PRODUTO ===
+
 def buscar_imagem(produto):
-    query = produto.replace(" ", "+")
-    url = f"https://via.placeholder.com/1280x720.png?text={query}"
+    # pode ser adaptado com API do Bing ou gerar imagem
+    url = "https://source.unsplash.com/1280x720/?" + produto
     response = requests.get(url)
     if response.status_code == 200:
         img = Image.open(BytesIO(response.content))
         img.save("fundo.jpg")
         return "fundo.jpg"
-    else:
-        return None
+    return None
 
-# === ENDPOINT: gera 1 VSL de produto enviado via POST ===
+
 @app.route("/gerar", methods=["POST"])
 def gerar_video():
     data = request.json
     produto = data.get("produto")
     link = data.get("link")
 
+    if not produto or not link:
+        return jsonify({"erro": "Produto e link são obrigatórios"}), 400
+
+    # Gerar roteiro
     prompt = f"Write a 30-second persuasive script to sell the product '{produto}', focusing on pain, desire, and urgency. End with: 'Link in description.'"
-
-resposta = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",
-    messages=[{"role": "user", "content": prompt}],
-    temperature=1.1
-)
-texto = resposta.choices[0].message.content
-
+    resposta = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=1.1
+    )
+    texto = resposta.choices[0].message.content
     print("Roteiro gerado:", texto)
 
+    # Gerar áudio
     if not gerar_audio_elevenlabs(texto):
-        return jsonify({"erro": "Erro ao gerar áudio com ElevenLabs"}), 500
+        return jsonify({"erro": "Falha ao gerar áudio"}), 500
 
-    imagem_path = buscar_imagem(produto)
-    if not imagem_path:
-        return jsonify({"erro": "Erro ao baixar imagem"}), 500
+    # Buscar imagem
+    fundo = buscar_imagem(produto)
+    if not fundo:
+        return jsonify({"erro": "Imagem não encontrada"}), 500
 
+    # Criar vídeo
+    imagem = ImageClip(fundo).set_duration(30)
     audio = AudioFileClip("audio.mp3")
-    imagem = ImageClip(imagem_path).set_duration(audio.duration).set_audio(audio).resize(height=720)
-    video_filename = f"video_{produto.replace(' ', '_')}.mp4"
-    imagem.write_videofile(video_filename, fps=24)
+    video = imagem.set_audio(audio)
+    video.write_videofile("vsl_final.mp4", fps=24)
 
-    return jsonify({"mensagem": "Vídeo gerado com sucesso!", "roteiro": texto, "arquivo": video_filename})
+    return jsonify({"mensagem": "VSL gerada com sucesso!"})
 
-# === ENDPOINT EXTRA: gera todos os produtos automaticamente ===
-@app.route("/gerar-todos", methods=["GET"])
-def gerar_videos_em_lote():
-    produtos = obter_produtos()
-    resultados = []
-    for item in produtos:
-        response = requests.post("http://localhost:8080/gerar", json=item)
-        resultados.append(response.json())
-    return jsonify(resultados)
 
-app.run(host="0.0.0.0", port=8080)
+if __name__ == "__main__":
+    app.run(debug=True)
+
