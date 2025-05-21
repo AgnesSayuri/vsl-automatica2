@@ -68,13 +68,15 @@ def gerar_video():
     produto = data.get("produto")
     link = data.get("link")
 
-    prompt = f"Crie um roteiro persuasivo de 30 segundos para vender o produto '{produto}', focando em dor, desejo e urgência. Finalize com: 'Link na descrição.'"
-    resposta = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=prompt,
-        max_tokens=200
-    )
-    texto = resposta.choices[0].text.strip()
+    prompt = f"Write a 30-second persuasive script to sell the product '{produto}', focusing on pain, desire, and urgency. End with: 'Link in description.'"
+
+resposta = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": prompt}],
+    temperature=1.1
+)
+texto = resposta.choices[0].message.content
+
     print("Roteiro gerado:", texto)
 
     if not gerar_audio_elevenlabs(texto):
