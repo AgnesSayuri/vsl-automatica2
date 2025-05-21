@@ -52,14 +52,17 @@ def buscar_imagem(produto):
 @app.route("/gerar", methods=["POST"])
 def gerar_video():
     try:
-        data = request.json
+        print("🔥 Requisição recebida no /gerar")
+
+        print("RAW BODY:", request.data)
+        print("HEADERS:", dict(request.headers))
+
+        data = request.get_json(force=True)
         produto = data.get("produto")
         link = data.get("link")
-        print("Produto recebido:", produto)
-        print("Link recebido:", link)
 
-        if not produto or not link:
-            return jsonify({"erro": "Produto e link são obrigatórios"}), 400
+        print("Produto:", produto)
+        print("Link:", link)
 
         prompt = f"Write a 30-second persuasive script to sell the product '{produto}', focusing on pain, desire, and urgency. End with: 'Link in description: {link}'"
         print("Prompt criado:", prompt)
