@@ -8,13 +8,12 @@ from io import BytesIO
 
 app = Flask(__name__)
 
-import os
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 
 def gerar_audio_elevenlabs(texto):
-    api_key = os.getenv("ELEVEN_API_KEY")
-    voice_id = "EXAVITQu4vr4xnSDxMaL"  # voz padrão americana
+    api_key = os.environ.get("ELEVEN_API_KEY")
+    voice_id = "EXAVITQu4vr4xnSDxMaL"  # voz americana padrão da Eleven
 
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
     headers = {
@@ -41,7 +40,6 @@ def gerar_audio_elevenlabs(texto):
 
 
 def buscar_imagem(produto):
-    # pode ser adaptado com API do Bing ou gerar imagem
     url = "https://source.unsplash.com/1280x720/?" + produto
     response = requests.get(url)
     if response.status_code == 200:
@@ -60,41 +58,38 @@ def gerar_video():
     if not produto or not link:
         return jsonify({"erro": "Produto e link são obrigatórios"}), 400
 
-    # Gerar roteiro
-    prompt = f"Write a 30-second persuasive script to sell the product '{produto}', focusing on pain, desire, and urgency. End with: 'Link in description.'"
-    resposta = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=1.1
-    )
-    texto = resposta.choices[0].message.content
-    print("Roteiro gerado:", texto)
+    # Gerar roteiro com OpenAI
+    prompt = f"Write a 30-second persuasive script to sell the product '{produto}', focusing on pain, desire, and urgency. End with: 'Link in description: {link}'"
 
-except Exception as e:
-    print("Erro ao chamar OpenAI:", e)
-    return jsonify({"erro": f"Falha ao gerar roteiro com OpenAI: {str(e)}"}), 500
-
-    print("Roteiro gerado:", texto)
+    try:
+        resposta = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=1.1
+        )
+        texto = resposta.choices[0].message.content
+        print("Roteiro gerado:", texto)
+    except Exception as e:
+        print("Erro ao chamar OpenAI:", e)
+        return jsonify({"erro": f"Erro OpenAI: {str(e)}"}), 500
 
     # Gerar áudio
     if not gerar_audio_elevenlabs(texto):
-        return jsonify({"erro": "Falha ao gerar áudio"}), 500
+        return jsonify({"erro": "Erro ao gerar áudio"}), 500
 
-    # Buscar imagem
+    # Imagem
     fundo = buscar_imagem(produto)
     if not fundo:
         return jsonify({"erro": "Imagem não encontrada"}), 500
 
-    # Criar vídeo
+    # Vídeo
     imagem = ImageClip(fundo).set_duration(30)
     audio = AudioFileClip("audio.mp3")
     video = imagem.set_audio(audio)
     video.write_videofile("vsl_final.mp4", fps=24)
 
-    return jsonify({"mensagem": "VSL gerada com sucesso!"})
+    return jsonify({"mensagem": "VSL criada com sucesso!"})
 
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
-
-
