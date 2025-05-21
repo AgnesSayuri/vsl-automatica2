@@ -8,7 +8,8 @@ from io import BytesIO
 
 app = Flask(__name__)
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+import os
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 
 def gerar_audio_elevenlabs(texto):
