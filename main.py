@@ -48,10 +48,12 @@ def buscar_imagem(produto):
         return "fundo.jpg"
     return None
 
-
 @app.route("/gerar", methods=["POST"])
 def gerar_video():
-    try:
+    print("🔥 Entrou na função gerar_video")
+
+    return jsonify({"mensagem": "Servidor recebeu o POST com sucesso!"}), 200
+
         print("🔥 Requisição recebida no /gerar")
 
         print("RAW BODY:", request.data)
