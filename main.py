@@ -51,9 +51,7 @@ def buscar_imagem(produto):
 @app.route("/gerar", methods=["POST"])
 def gerar_video():
     print("🔥 Entrou na função gerar_video")
-
-    return jsonify({"mensagem": "Servidor recebeu o POST com sucesso!"}), 200
-
+    
         print("🔥 Requisição recebida no /gerar")
 
         print("RAW BODY:", request.data)
@@ -65,6 +63,8 @@ def gerar_video():
 
         print("Produto:", produto)
         print("Link:", link)
+
+ return jsonify({"mensagem": "Servidor recebeu o POST com sucesso!"}), 200
 
         prompt = f"Write a 30-second persuasive script to sell the product '{produto}', focusing on pain, desire, and urgency. End with: 'Link in description: {link}'"
         print("Prompt criado:", prompt)
